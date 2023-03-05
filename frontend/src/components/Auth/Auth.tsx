@@ -4,6 +4,7 @@ import { Button, Center, Image, Input, Stack, Text } from "@chakra-ui/react";
 import { Session } from "next-auth";
 import { signIn } from "next-auth/react";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 import UserOperations from "../../graphql/operations/user";
 
@@ -18,18 +19,35 @@ const Auth: React.FunctionComponent<IAuthProps> = ({
 }) => {
   const [username, setUsername] = useState("");
 
-  const [createUsername, { data, loading, error }] = useMutation<
+  const [createUsername, { loading, error }] = useMutation<
     CreateUsernameData,
     CreateUsernameVariables
   >(UserOperations.Mutations.createUsername);
 
-  console.log("here is data", data, loading, error);
-
   const onSubmit = async () => {
     if (!username) return;
     try {
-      await createUsername({ variables: { username } });
-    } catch (error) {
+      const { data } = await createUsername({ variables: { username } });
+
+      if (!data?.createUsername) {
+        throw new Error();
+      }
+
+      if (data.createUsername.error) {
+        const {
+          createUsername: { error },
+        } = data;
+
+        throw new Error(error);
+      }
+
+      toast.success('Username successfully created!')
+
+      /* reload to obtain new username */
+      reloadSession();
+
+    } catch (error: any) {
+      toast.error(error?.message)
       console.log("onSubmit error", error);
     }
   };
